@@ -1,0 +1,69 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.5
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-workpin}
+      POSTGRES_USER: ${POSTGRES_USER:-workpin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-workpin_local_only}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -h 127.0.0.1 -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  redis:
+    image: redis:7.4-alpine
+    command: [redis-server, --appendonly, 'yes']
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  migrate:
+    image: migrate/migrate:v4.18.3
+    volumes:
+      - ./migrations:/migrations:ro
+    command: ['-path', /migrations, '-database', 'postgres://${POSTGRES_USER:-workpin}:${POSTGRES_PASSWORD:-workpin_local_only}@postgres:5432/${POSTGRES_DB:-workpin}?sslmode=disable', up]
+    depends_on:
+      postgres:
+        condition: service_healthy
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    environment:
+      HTTP_ADDR: ':8080'
+      DATABASE_URL: postgres://${POSTGRES_USER:-workpin}:${POSTGRES_PASSWORD:-workpin_local_only}@postgres:5432/${POSTGRES_DB:-workpin}?sslmode=disable
+      AUTH_COOKIE_SECURE: 'false'
+    ports:
+      - '127.0.0.1:${API_PORT:-8081}:8080'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -q, --spider, 'http://127.0.0.1:8080/healthz']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    ports:
+      - '127.0.0.1:${WEB_PORT:-8080}:80'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -q, --spider, 'http://127.0.0.1/']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+volumes:
+  postgres_data:
+  redis_data:
