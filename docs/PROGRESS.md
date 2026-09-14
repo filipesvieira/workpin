@@ -85,6 +85,15 @@ Validação: testes, `go vet`, build da API e migrations até a versão 11 passa
 
 Implementado: attendance sessions e eventos imutáveis; check-in e checkout autenticados com GPS, timestamp UTC do servidor, distância PostGIS, geofence, precisão, horas reais em segundos e valor calculado oficialmente no backend. Registros fora da geofence ou com precisão insuficiente são preservados como `REVIEW_REQUIRED`.
 
+## M5 — Automatic Pay
+
+Concluído:
+
+- `job_assignments.hourly_rate_override` prevalece quando definido; caso contrário, usa `workers.default_hourly_rate`.
+- O check-in grava o valor resolvido em `attendance_sessions.hourly_rate`, preservando o histórico após futuras alterações do worker ou assignment.
+- O checkout calcula `worked_seconds` pelo horário do servidor e `calculated_amount = round((worked_seconds / 3600) * hourly_rate, 2)` no PostgreSQL.
+- Valores financeiros usam `NUMERIC(12,2)` e transitam pela API como strings decimais, sem `float`.
+
 ## Pendências posteriores
 
 - PWA instalável e service worker.
