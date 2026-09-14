@@ -50,6 +50,9 @@ func New(logger *slog.Logger, authService *auth.Service, pool *pgxpool.Pool, coo
 	mux.Handle("POST /attendance/check-in", api.requireAuth(http.HandlerFunc(api.checkIn)))
 	mux.Handle("POST /attendance/{id}/check-out", api.requireAuth(http.HandlerFunc(api.checkOut)))
 	mux.Handle("GET /ws", api.requireAuth(http.HandlerFunc(api.ws)))
+	mux.Handle("GET /dashboard/today", api.requireAdmin(http.HandlerFunc(api.dashboardToday)))
+	mux.Handle("GET /dashboard/activity", api.requireAdmin(http.HandlerFunc(api.dashboardActivity)))
+	mux.Handle("GET /dashboard/map", api.requireAdmin(http.HandlerFunc(api.dashboardMap)))
 	return api.withLogging(mux)
 }
 
