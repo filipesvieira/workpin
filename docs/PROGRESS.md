@@ -70,6 +70,17 @@ Validação concluída em 14/09/2026:
 
 Os dados temporários do teste foram removidos. A interface administrativa completa será consolidada com as telas de workers, customers e jobs nos próximos milestones; a API já é utilizável para esses fluxos.
 
+## M3 — Jobs + Assignment
+
+Implementado:
+
+- Jobs com cliente, local, período UTC, estado e validação de fim posterior ao início.
+- Assignments com múltiplos workers e override decimal de valor/hora.
+- Lista administrativa de jobs e agenda diária autenticada em `/assignments/my/today`.
+- Criação valida customer, location e cada worker na mesma organização dentro da transação.
+
+Validação: testes, `go vet`, build da API e migrations até a versão 11 passaram com Docker Compose.
+
 ## Pendências posteriores
 
 - PWA instalável e service worker.
