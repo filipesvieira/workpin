@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/filipesvieira/workpin/services/api/internal/auth"
+	"github.com/filipesvieira/workpin/services/api/internal/realtime"
+	"github.com/gorilla/websocket"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -20,11 +22,12 @@ type API struct {
 	auth         *auth.Service
 	cookieSecure bool
 	pool         *pgxpool.Pool
+	hub          *realtime.Hub
 }
 
 // New creates API routes. Authenticated handlers receive organization_id only from the verified session.
 func New(logger *slog.Logger, authService *auth.Service, pool *pgxpool.Pool, cookieSecure bool) http.Handler {
-	api := &API{logger: logger, auth: authService, pool: pool, cookieSecure: cookieSecure}
+	api := &API{logger: logger, auth: authService, pool: pool, cookieSecure: cookieSecure, hub: realtime.NewHub()}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", api.health)
 	mux.HandleFunc("POST /auth/request-otp", api.requestOTP)
@@ -46,7 +49,24 @@ func New(logger *slog.Logger, authService *auth.Service, pool *pgxpool.Pool, coo
 	mux.Handle("GET /assignments/my/today", api.requireAuth(http.HandlerFunc(api.myToday)))
 	mux.Handle("POST /attendance/check-in", api.requireAuth(http.HandlerFunc(api.checkIn)))
 	mux.Handle("POST /attendance/{id}/check-out", api.requireAuth(http.HandlerFunc(api.checkOut)))
+	mux.Handle("GET /ws", api.requireAuth(http.HandlerFunc(api.ws)))
 	return api.withLogging(mux)
+}
+
+func (a *API) ws(w http.ResponseWriter, r *http.Request) {
+	c, e := (&websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}).Upgrade(w, r, nil)
+	if e != nil {
+		return
+	}
+	org := UserFromContext(r.Context()).OrganizationID
+	a.hub.Add(org, c)
+	defer a.hub.Remove(org, c)
+	defer c.Close()
+	for {
+		if _, _, e = c.ReadMessage(); e != nil {
+			return
+		}
+	}
 }
 
 func (a *API) requireAdmin(next http.Handler) http.Handler {

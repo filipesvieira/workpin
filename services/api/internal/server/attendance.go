@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/filipesvieira/workpin/services/api/internal/realtime"
 	"github.com/jackc/pgx/v5"
 	"net/http"
 	"time"
@@ -74,6 +75,7 @@ func (a *API) checkIn(w http.ResponseWriter, r *http.Request) {
 		a.internal(w)
 		return
 	}
+	a.hub.Publish(u.OrganizationID, realtime.Event{Type: "attendance.checked_in", OrganizationID: u.OrganizationID, OccurredAt: now.Format(time.RFC3339), Payload: map[string]any{"attendanceId": id, "distanceMeters": distance, "verificationStatus": status}})
 	writeJSON(w, 201, map[string]any{"id": id, "checkinAt": now, "distanceMeters": distance, "verificationStatus": status})
 }
 func (a *API) checkOut(w http.ResponseWriter, r *http.Request) {
@@ -140,5 +142,6 @@ func (a *API) checkOut(w http.ResponseWriter, r *http.Request) {
 		a.internal(w)
 		return
 	}
+	a.hub.Publish(u.OrganizationID, realtime.Event{Type: "attendance.checked_out", OrganizationID: u.OrganizationID, OccurredAt: now.Format(time.RFC3339), Payload: map[string]any{"attendanceId": r.PathValue("id"), "workedSeconds": worked, "calculatedAmount": amount, "verificationStatus": verification}})
 	writeJSON(w, http.StatusOK, map[string]any{"checkoutAt": now, "workedSeconds": worked, "calculatedAmount": amount, "distanceMeters": distance, "verificationStatus": verification})
 }
