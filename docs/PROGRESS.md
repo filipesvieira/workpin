@@ -81,6 +81,10 @@ Implementado:
 
 Validação: testes, `go vet`, build da API e migrations até a versão 11 passaram com Docker Compose.
 
+## M4 — Check-in / Checkout
+
+Implementado: attendance sessions e eventos imutáveis; check-in e checkout autenticados com GPS, timestamp UTC do servidor, distância PostGIS, geofence, precisão, horas reais em segundos e valor calculado oficialmente no backend. Registros fora da geofence ou com precisão insuficiente são preservados como `REVIEW_REQUIRED`.
+
 ## Pendências posteriores
 
 - PWA instalável e service worker.

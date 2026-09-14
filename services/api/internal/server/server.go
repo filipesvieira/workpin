@@ -44,6 +44,8 @@ func New(logger *slog.Logger, authService *auth.Service, pool *pgxpool.Pool, coo
 	mux.Handle("GET /jobs", api.requireAdmin(http.HandlerFunc(api.listJobs)))
 	mux.Handle("POST /jobs", api.requireAdmin(http.HandlerFunc(api.createJob)))
 	mux.Handle("GET /assignments/my/today", api.requireAuth(http.HandlerFunc(api.myToday)))
+	mux.Handle("POST /attendance/check-in", api.requireAuth(http.HandlerFunc(api.checkIn)))
+	mux.Handle("POST /attendance/{id}/check-out", api.requireAuth(http.HandlerFunc(api.checkOut)))
 	return api.withLogging(mux)
 }
 
