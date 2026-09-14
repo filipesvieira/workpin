@@ -43,7 +43,7 @@ func main() {
 		os.Exit(1)
 	}
 	service := auth.NewService(pool, auth.NewMockSMSProvider(logger), accessTTL, refreshTTL)
-	srv := &http.Server{Addr: addr, Handler: server.New(logger, service, os.Getenv("AUTH_COOKIE_SECURE") == "true"), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
+	srv := &http.Server{Addr: addr, Handler: server.New(logger, service, pool, os.Getenv("AUTH_COOKIE_SECURE") == "true"), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	done := make(chan error, 1)

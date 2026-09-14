@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/filipesvieira/workpin/services/api/internal/auth"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type userContextKey struct{}
@@ -18,11 +19,12 @@ type API struct {
 	logger       *slog.Logger
 	auth         *auth.Service
 	cookieSecure bool
+	pool         *pgxpool.Pool
 }
 
 // New creates API routes. Authenticated handlers receive organization_id only from the verified session.
-func New(logger *slog.Logger, authService *auth.Service, cookieSecure bool) http.Handler {
-	api := &API{logger: logger, auth: authService, cookieSecure: cookieSecure}
+func New(logger *slog.Logger, authService *auth.Service, pool *pgxpool.Pool, cookieSecure bool) http.Handler {
+	api := &API{logger: logger, auth: authService, pool: pool, cookieSecure: cookieSecure}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", api.health)
 	mux.HandleFunc("POST /auth/request-otp", api.requestOTP)
@@ -30,7 +32,27 @@ func New(logger *slog.Logger, authService *auth.Service, cookieSecure bool) http
 	mux.HandleFunc("POST /auth/refresh", api.refresh)
 	mux.HandleFunc("POST /auth/logout", api.logout)
 	mux.Handle("GET /me", api.requireAuth(http.HandlerFunc(api.me)))
+	mux.Handle("GET /workers", api.requireAdmin(http.HandlerFunc(api.listWorkers)))
+	mux.Handle("POST /workers", api.requireAdmin(http.HandlerFunc(api.createWorker)))
+	mux.Handle("PATCH /workers/{id}", api.requireAdmin(http.HandlerFunc(api.updateWorker)))
+	mux.Handle("GET /customers", api.requireAdmin(http.HandlerFunc(api.listCustomers)))
+	mux.Handle("POST /customers", api.requireAdmin(http.HandlerFunc(api.createCustomer)))
+	mux.Handle("PATCH /customers/{id}", api.requireAdmin(http.HandlerFunc(api.updateCustomer)))
+	mux.Handle("GET /locations", api.requireAdmin(http.HandlerFunc(api.listLocations)))
+	mux.Handle("POST /locations", api.requireAdmin(http.HandlerFunc(api.createLocation)))
+	mux.Handle("PATCH /locations/{id}", api.requireAdmin(http.HandlerFunc(api.updateLocation)))
 	return api.withLogging(mux)
+}
+
+func (a *API) requireAdmin(next http.Handler) http.Handler {
+	return a.requireAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		role := UserFromContext(r.Context()).Role
+		if role != "OWNER" && role != "ADMIN" {
+			writeJSON(w, http.StatusForbidden, map[string]string{"error": "administrator access required"})
+			return
+		}
+		next.ServeHTTP(w, r)
+	}))
 }
 
 func (a *API) health(w http.ResponseWriter, _ *http.Request) {

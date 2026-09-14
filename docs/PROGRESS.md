@@ -51,6 +51,25 @@ O teste HTTP usou organização e worker temporários, removidos ao fim da valid
 
 Workers, valor/hora, customers, service locations, PostGIS e geofence.
 
+## M2 — Workers, Customers + Locations
+
+Implementado:
+
+- Workers vinculados a usuários `WORKER`, com telefone E.164, código opcional, estado e valor/hora `NUMERIC(12,2)`.
+- Customers e service locations com CRUD administrativo.
+- Coordenadas validadas no backend e pontos `geography(Point,4326)` no PostGIS, índice GIST e geofence por local.
+- Endpoints `GET`, `POST` e `PATCH` para `/workers`, `/customers` e `/locations`, protegidos para `OWNER` e `ADMIN`.
+- Toda leitura e escrita usa o `organization_id` da sessão; o customer também é validado antes de criar ou editar seu local.
+- Edição de worker em transação, preservando consistência entre `users` e `workers`.
+
+Validação concluída em 14/09/2026:
+
+- Build, testes e `go vet` passaram no container Go.
+- Migrations aplicadas até versão 9, sem estado sujo.
+- CRUD autenticado testado para worker (£15.00/h), customer e local com coordenadas de Londres e geofence de 100m.
+
+Os dados temporários do teste foram removidos. A interface administrativa completa será consolidada com as telas de workers, customers e jobs nos próximos milestones; a API já é utilizável para esses fluxos.
+
 ## Pendências posteriores
 
 - PWA instalável e service worker.

@@ -9,7 +9,7 @@ import (
 )
 
 func TestRoutes(t *testing.T) {
-	handler := New(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, false)
+	handler := New(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, false)
 	for _, tc := range []struct {
 		method, path string
 		status       int

@@ -76,3 +76,7 @@ docker compose logs api --tail=20
 Use o campo `code` emitido pelo `MockSMSProvider` para chamar `/auth/verify-otp`. Ele envia os cookies `HttpOnly` de acesso e refresh. Nunca use o provedor mock em produção.
 
 A próxima etapa é M2. Veja [docs/PROGRESS.md](docs/PROGRESS.md).
+
+## API administrativa M2
+
+Após autenticar como `OWNER` ou `ADMIN`, a API oferece `GET`, `POST` e `PATCH` para `/workers`, `/customers` e `/locations`. O valor/hora é enviado como string decimal, por exemplo `"15.00"`, para nunca passar por `float`. Um local exige `customerId`, endereço, latitude, longitude e `geofenceRadiusMeters`; o ponto geográfico oficial é construído no PostgreSQL/PostGIS.
